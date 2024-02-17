@@ -1,9 +1,7 @@
-import autoprefixer from 'autoprefixer'
 import * as dotenv from 'dotenv'
 import esbuild from 'esbuild'
 import fs from 'fs-extra'
 import process from 'node:process'
-import tailwindcss from 'tailwindcss'
 
 dotenv.config()
 
@@ -36,7 +34,7 @@ async function runEsbuild() {
       '.svg': 'dataurl',
     },
     plugins: [
-    ],
+    ]
   })
 }
 

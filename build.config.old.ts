@@ -1,5 +1,5 @@
 import { defineBuildConfig } from 'unbuild'
-import includePaths from 'rollup-plugin-includepaths';
+// import includePaths from 'rollup-plugin-includepaths';
 
 let includePathOptions = {
     include: {},
@@ -17,5 +17,5 @@ export default defineBuildConfig({
   rollup: {
     emitCJS: true,
   },
-  plugins: [ includePaths(includePathOptions) ],
+  // plugins: [ includePaths(includePathOptions) ],
 })

@@ -13,6 +13,12 @@ export type Event =
       message: string
     }
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export interface GenerateAnswerParams {
   prompt: string
   onEvent: (event: Event) => void
@@ -22,6 +28,12 @@ export interface GenerateAnswerParams {
   arkoseToken?: string
 }
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export interface Provider {
   generateAnswer(params: GenerateAnswerParams): Promise<{ cleanup?: () => void }>
 }

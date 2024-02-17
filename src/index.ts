@@ -1,4 +1,16 @@
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export const one = 1
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export const two = 2
 
 import { Buffer } from 'buffer'
@@ -59,10 +71,10 @@ const countWords = (text: string) => {
   return text.trim().split(/\s+/).length
 }
 
-async function getChatgptwssIsOpenFlag() {
-  const { chatgptwssIsOpenFlag = false } = await Browser.storage.sync.get('chatgptwssIsOpenFlag')
-  return chatgptwssIsOpenFlag
-}
+// async function getChatgptwssIsOpenFlag() {
+//   const { chatgptwssIsOpenFlag = false } = await Browser.storage.sync.get('chatgptwssIsOpenFlag')
+//   return chatgptwssIsOpenFlag
+// }
 
 async function setChatgptwssIsOpenFlag(isOpen: boolean) {
   const { chatgptwssIsOpenFlag = false } = await Browser.storage.sync.get('chatgptwssIsOpenFlag')
@@ -91,18 +103,30 @@ async function request_new(
     })
     .then(function (data:any) {
       console.log('response data', data)
-      // if (callback)
-      //   callback(token, data)
+      if (callback)
+        callback(token, data)
     })
     .catch((error:any) => {
       console.error('fetch', token, method, path, 'error', error)
     })
 }
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export async function sendMessageFeedback(token: string, data: unknown) {
   await request(token, 'POST', '/conversation/message_feedback', data)
 }
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export async function setConversationProperty(
   token: string,
   conversationId: string,
@@ -137,7 +161,7 @@ function deleteRecentConversations(token: string, data: any) {
         const cloneBTCMap = new Map(browsertabIdConversationIdMap)
         cloneBTCMap.forEach((ConversationId, tabId, map) => {
           console.log('Looking for', ConversationId, tabId, 'in', map)
-          if (ConversationId == convs[i].id) {
+          if (ConversationId === convs[i].id) {
             console.log('Deleting ', ConversationId, tabId, 'from', map)
             browsertabIdConversationIdMap.delete(tabId)
             console.log(
@@ -166,6 +190,12 @@ const KEY_ACCESS_TOKEN = 'accessToken'
 
 const cache = new ExpiryMap(10 * 1000)
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export async function getChatGPTAccessToken(): Promise<string> {
   if (cache.get(KEY_ACCESS_TOKEN)) {
     return cache.get(KEY_ACCESS_TOKEN)
@@ -182,6 +212,12 @@ export async function getChatGPTAccessToken(): Promise<string> {
   return data.accessToken
 }
 
+/**
+ * Does something useful for sure
+ * @param none
+ * @returns 1
+ * @public
+ */
 export class ChatGPTProvider implements Provider {
   constructor(private token: string) {
     this.token = token
@@ -248,7 +284,7 @@ export class ChatGPTProvider implements Provider {
 
         const renameConversationTitle = async (convId: string, params: GenerateAnswerParams) => {
           const titl: string = getConversationTitle(params.prompt)
-          // console.log('renameConversationTitle:', this.token, convId, titl)
+          console.log('renameConversationTitle:', titl)
           // setConversationProperty(this.token, convId, { title: titl })
         }
 
@@ -272,7 +308,7 @@ export class ChatGPTProvider implements Provider {
         }
         const text = data.message?.content?.parts?.[0]
         if (text) {
-          if (countWords(text) == 1 && data.message?.author?.role == 'assistant') {
+          if (countWords(text) === 1 && data.message?.author?.role === 'assistant') {
             if (params.prompt.indexOf('search query:') !== -1) {
               renameConversationTitle(data.conversation_id, params)
             }
@@ -303,6 +339,7 @@ export class ChatGPTProvider implements Provider {
       const wsAddress = jj['wss_url']
       const wsp: WebSocketAsPromised = new WebSocketAsPromised(wsAddress, {
         createWebSocket: (url) => {
+          console.log("createWebSocket:url", url)
           const ws = new WebSocket(wsAddress, [
             'Sec-Websocket-Protocol',
             'json.reliable.webpubsub.azure.v1',
@@ -369,7 +406,7 @@ export class ChatGPTProvider implements Provider {
           }
           if (text) {
             console.log('ChatGPTProvider:setupWSS:text', text)
-            if (countWords(text) == 1 && data.message?.author?.role == 'assistant') {
+            if (countWords(text) === 1 && data.message?.author?.role === 'assistant') {
               if (params.prompt.indexOf('search query:') !== -1) {
                 this.renameConversationTitle(data.conversation_id, params)
               }
@@ -437,7 +474,7 @@ export class ChatGPTProvider implements Provider {
     }
 
     console.log('ChatGPTProvider:ChatgptMode', config.chatgptMode)
-    if (config.chatgptMode == ChatgptMode.SSE) {
+    if (config.chatgptMode === ChatgptMode.SSE) {
       this.generateAnswerBySSE(params, cleanup)
     } else {
       const regResp = await this.registerWSS(params)
@@ -447,3 +484,6 @@ export class ChatGPTProvider implements Provider {
     return { cleanup }
   }
 }
+
+
+

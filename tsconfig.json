@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "target": "es2018",
+    "target": "es2021",
     "module": "esnext",
     "moduleResolution": "node",
     "esModuleInterop": true,
