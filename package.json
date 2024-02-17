@@ -29,13 +29,6 @@
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
     },
-    "./stream": {
-      "types": "./dist/stream.d.ts",
-      "source": "./src/stream.ts",
-      "import": "./dist/stream.js",
-      "require": "./dist/stream.cjs",
-      "default": "./dist/stream.js"
-    },
     "./package.json": "./package.json"
   },
   "main": "./dist/index.cjs",

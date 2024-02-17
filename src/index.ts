@@ -1,17 +1,89 @@
 /**
  * Does something useful for sure
- * @param none
  * @returns 1
  * @public
  */
 export const one = 1
 /**
  * Does something useful for sure
- * @param none
- * @returns 1
+ * @returns 2
  * @public
  */
 export const two = 2
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export interface Answer {
+  text: string
+  messageId: string
+  conversationId: string
+  parentMessageId: string
+}
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export type Event =
+  | {
+      type: 'answer'
+      data: Answer
+    }
+  | {
+      type: 'done'
+    }
+  | {
+      type: 'error'
+      message: string
+    }
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export interface GenerateAnswerParams {
+  prompt: string
+  onEvent: (event: Event) => void
+  signal?: AbortSignal
+  conversationId?: string
+  parentMessageId?: string
+  arkoseToken?: string
+}
+
+/**
+ * Does something useful for sure
+ * @param generateAnswer -  generates answer
+ * @returns 1
+ * @public
+ */
+export interface Provider {
+  generateAnswer(params: GenerateAnswerParams): Promise<{ cleanup?: () => void }>
+}
+
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export type ResponseContent =
+  | {
+      content_type: 'text'
+      parts: string[]
+    }
+  | {
+      content_type: 'code'
+      text: string
+    }
+  | {
+      content_type: 'tether_browsing_display'
+      result: string
+    }
 
 import { Buffer } from 'buffer'
 import dayjs from 'dayjs'
@@ -24,7 +96,7 @@ import { ChatgptMode, getUserConfig } from './config'
 import { ADAY, APPSHORTNAME, HALFHOUR } from './utils/consts'
 import { parseSSEResponse } from './utils/sse'
 import { fetchSSE } from './utils/fetch-sse'
-import { GenerateAnswerParams, ResponseContent, Provider } from './utils/types'
+// import { GenerateAnswerParams, ResponseContent, Provider } from './utils/types'
 
 dayjs().format()
 
@@ -103,8 +175,10 @@ async function request_new(
     })
     .then(function (data:any) {
       console.log('response data', data)
-      if (callback)
-        callback(token, data)
+      if (callback) {
+        console.log('callback', callback)
+        // callback(token, data)
+      }
     })
     .catch((error:any) => {
       console.error('fetch', token, method, path, 'error', error)
@@ -113,7 +187,8 @@ async function request_new(
 
 /**
  * Does something useful for sure
- * @param none
+ * @param token - access token
+ *        data - data
  * @returns 1
  * @public
  */
@@ -123,7 +198,9 @@ export async function sendMessageFeedback(token: string, data: unknown) {
 
 /**
  * Does something useful for sure
- * @param none
+ * @param token - access token
+ *        conversationId - string
+ *        propertyObject - string
  * @returns 1
  * @public
  */
@@ -192,7 +269,6 @@ const cache = new ExpiryMap(10 * 1000)
 
 /**
  * Does something useful for sure
- * @param none
  * @returns 1
  * @public
  */
@@ -214,7 +290,7 @@ export async function getChatGPTAccessToken(): Promise<string> {
 
 /**
  * Does something useful for sure
- * @param none
+ * @param token - access token
  * @returns 1
  * @public
  */
