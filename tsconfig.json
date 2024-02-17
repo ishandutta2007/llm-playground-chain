@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "target": "es2018",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "types": [
+      "node",
+      "vitest"
+    ],
+    "paths": {
+      "~*": ["./src/*"]
+    }
+  }
+}
