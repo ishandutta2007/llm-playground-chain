@@ -1,5 +1,6 @@
 {
   "name": "llm-playground-chain",
+  "type": "module",
   "version": "0.0.1",
   "packageManager": "pnpm@7.3.0",
   "description": "",
@@ -20,13 +21,12 @@
     "package"
   ],
   "sideEffects": false,
-  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "source": "./src/index.ts",
-      "import": "./dist/index.js",
       "require": "./dist/index.cjs",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
@@ -35,9 +35,6 @@
   "module": "./dist/index.js",
   "source": "./src/index.ts",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "typesVersions": {
     "*": {
       "*": [
@@ -46,6 +43,9 @@
       ]
     }
   },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=18.17.1 <19.0.0",
     "pnpm": ">=9.6.7",
@@ -113,7 +113,7 @@
     "commit-msg": "npx --no -- commitlint --edit $1"
   },
   "lint-staged": {
-    "*.{js,jsx,ts,tsx,vue}": "eslint --fix"
+    "*.{js,jsx,ts,tsx,vue,json}": "eslint --fix"
   },
   "config": {
     "commitizen": {
