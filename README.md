@@ -11,7 +11,8 @@
 - This is an LLM playground chain for Browser Extensions. It works from `background`'s `service_worker`s.(manifest v3).
 - Occationally additional `declarative_net_request` rules might be requied.(manifest v3)
 - This package is aimed to be a Chain for playgrounds of LLMs, for production API's of LLMs you might use langchain.js
-
+- Bots Supported in (beta)
+  - ChatGPT
 ## 💡 Get Started
 
 Luckily, it's incredibly easy to get your package development started:
