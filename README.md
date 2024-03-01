@@ -66,8 +66,7 @@ For help, discussion about best practices, or any other conversation that would 
 
 For casual chit-chat with others using this package:
 
-[Join the Open Web Discord Server](https://discord.ow3.org)
-
+[Join the Singularity Labs Discord Server](https://discord.com/invite/jc4xtF58Ve)
 ## 📄 License
 
 The MIT License (MIT). Please see [LICENSE](LICENSE.md) for more information.
