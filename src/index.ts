@@ -596,13 +596,13 @@ export class ChatGPTProvider implements Provider {
     }
 
     console.log('ChatGPTProvider:ChatgptMode', config.chatgptMode)
-    if (config.chatgptMode === ChatgptMode.SSE) {
-      this.generateAnswerBySSE(params, cleanup)
-    } else {
+    // if (config.chatgptMode === ChatgptMode.SSE) {
+    //   this.generateAnswerBySSE(params, cleanup)
+    // } else {
       const regResp = await this.registerWSS(params)
       await this.setupWSS(params, regResp) // Since params change WSS have to be setup up every time
       this.generateAnswerBySSE(params, cleanup)
-    }
+    // }
     return { cleanup }
   }
 }
