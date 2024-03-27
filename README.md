@@ -32,6 +32,9 @@ pnpm run commit # then simply answer the questions
 
 # after you have successfully committed, you may create a "release"
 pnpm run release # automates git commits, versioning, and changelog generations
+
+#finally publish
+pnpm publish --access public
 ```
 
 ### Developer Experience (DX)
