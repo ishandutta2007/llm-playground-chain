@@ -1,241 +1,55 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __esm = (fn, res) => function __init() {
-  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
 };
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
 
-// dist/index.js
-var dist_exports = {};
-__export(dist_exports, {
-  ChatGPTProvider: () => ChatGPTProvider,
-  getChatGPTAccessToken: () => getChatGPTAccessToken,
-  one: () => one,
-  sendMessageFeedback: () => sendMessageFeedback,
-  setConversationProperty: () => setConversationProperty,
-  two: () => two
-});
-import { Buffer as Buffer2 } from "buffer";
-import dayjs from "dayjs";
-import { createParser } from "eventsource-parser";
-import ExpiryMap from "expiry-map";
-import { v4 } from "uuid";
-import Browser from "webextension-polyfill";
-import WebSocketAsPromised from "websocket-as-promised";
-import { defaults, isEmpty } from "lodash-es";
-async function getUserConfig() {
-  const result = await Browser.storage.local.get(Object.keys(userConfigWithDefaultValue));
-  return defaults(result, userConfigWithDefaultValue);
-}
-async function* streamAsyncIterable$1(stream) {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const {
-        done,
-        value
-      } = await reader.read();
-      if (done) {
-        return;
-      }
-      yield value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-async function parseSSEResponse(resp, onMessage) {
-  if (!resp.ok) {
-    const error = await resp.json().catch(() => ({}));
-    throw new Error(JSON.stringify(error));
-  }
-  const parser = createParser((event) => {
-    console.log("parseSSEResponse parser event", event);
-    if (event.type === "event") {
-      onMessage(event.data);
-    }
-  });
-  for await (const chunk of streamAsyncIterable$1(resp.body)) {
-    const str = new TextDecoder().decode(chunk);
-    console.log("parseSSEResponse str", str);
-    if (str.includes("wss_url")) {
-      console.log("parseSSEResponseChatGPT str", str);
-      onMessage(str);
-    } else {
-      parser.feed(str);
-    }
-  }
-}
-async function parseSSEResponse3(resp, onMessage) {
-  if (!resp.ok) {
-    const error = await resp.json().catch(() => ({}));
-    throw new Error(JSON.stringify(error));
-  }
-  createParser((event) => {
-    console.log("parseSSEResponse3 parser event", event);
-    if (event.type === "event") {
-      onMessage(event.data);
-    }
-  });
-  for await (const chunk of streamAsyncIterable$1(resp.body)) {
-    const str = new TextDecoder().decode(chunk);
-    console.log("parseSSEResponse3 str", str);
-    const strjson = JSON.parse(str);
-    console.log("parseSSEResponse3 strjson", strjson);
-    onMessage(strjson);
-  }
-}
-async function* streamAsyncIterable(stream) {
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const {
-        done,
-        value
-      } = await reader.read();
-      if (done) {
-        return;
-      }
-      yield value;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-}
-async function fetchSSE(resource, options) {
-  const {
-    onMessage,
-    ...fetchOptions
-  } = options;
-  const resp = await fetch(resource, fetchOptions);
-  if (!resp.ok) {
-    const error = await resp.json().catch(() => ({}));
-    throw new Error(!isEmpty(error) ? JSON.stringify(error) : "".concat(resp.status, " ").concat(resp.statusText));
-  }
-  const parser = createParser((event) => {
-    if (event.type === "event") {
-      onMessage(event.data);
-    }
-  });
-  for await (const chunk of streamAsyncIterable(resp.body)) {
-    const str = new TextDecoder().decode(chunk);
-    console.log("fetchSSE", str);
-    if (str.includes("wss_url")) {
-      onMessage(str);
-    }
-    parser.feed(str);
-  }
-}
-async function request(token, method, path, data) {
-  return fetch("https://chat.openai.com/backend-api".concat(path), {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer ".concat(token)
-    },
-    body: data === void 0 ? void 0 : JSON.stringify(data)
-  });
-}
-function removeCitations(text) {
-  return text.replaceAll(/\u3010\d+\u2020source\u3011/g, "");
-}
-async function setChatgptwssIsOpenFlag(isOpen) {
-  const {
-    chatgptwssIsOpenFlag = false
-  } = await Browser.storage.sync.get("chatgptwssIsOpenFlag");
-  Browser.storage.sync.set({
-    chatgptwssIsOpenFlag: isOpen
-  });
-  return chatgptwssIsOpenFlag;
-}
-async function request_new(token, method, path, data, callback) {
-  return fetch("https://chat.openai.com/backend-api".concat(path), {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer ".concat(token)
-    },
-    body: data === void 0 ? void 0 : JSON.stringify(data)
-  }).then(function(response) {
-    console.log("fetch", token != null, method, path, "response", response);
-    return response.json();
-  }).then(function(data2) {
-    console.log("response data", data2);
-    if (callback) {
-      console.log("callback", callback);
-    }
-  }).catch((error) => {
-    console.error("fetch", token, method, path, "error", error);
-  });
-}
-async function sendMessageFeedback(token, data) {
-  await request(token, "POST", "/conversation/message_feedback", data);
-}
-async function setConversationProperty(token, conversationId, propertyObject) {
-  await request(token, "PATCH", "/conversation/".concat(conversationId), propertyObject);
-}
-function deleteRecentConversations(token, data) {
-  const now = dayjs();
-  const startTime = dayjs(performance.timeOrigin);
-  console.log("startTime", startTime);
-  const convs = data.items;
-  console.log("convs", convs);
-  for (let i = 0; i < convs.length; i++) {
-    const conv_i_time = dayjs(convs[i].create_time);
-    if (HALFHOUR < now.diff(conv_i_time) && now.diff(conv_i_time) < ADAY && convs[i].title.indexOf(APPSHORTNAME + ":") != -1) {
-      setTimeout(function() {
-        console.log("Deleting", token != null, convs[i].id);
-        setConversationProperty(token, convs[i].id, {
-          is_visible: false
-        });
-        const cloneBTCMap = new Map(browsertabIdConversationIdMap);
-        cloneBTCMap.forEach((ConversationId, tabId, map) => {
-          console.log("Looking for", ConversationId, tabId, "in", map);
-          if (ConversationId === convs[i].id) {
-            console.log("Deleting ", ConversationId, tabId, "from", map);
-            browsertabIdConversationIdMap.delete(tabId);
-            console.log("browsertabIdConversationIdMap after Deleting ", browsertabIdConversationIdMap);
-          }
-        });
-        const cloneWCMap = new Map(windowIdConversationIdMap);
-        cloneWCMap.forEach((conversationIdsConcatinated, windowId, map) => {
-          console.log("Looking for", conversationIdsConcatinated, windowId, "in", map);
-          if (conversationIdsConcatinated.indexOf(convs[i].id) != -1) {
-            console.log("Deleting ", convs[i].id, windowId, "from", map);
-            conversationIdsConcatinated = conversationIdsConcatinated.replace(convs[i].id, "");
-            conversationIdsConcatinated = conversationIdsConcatinated.replace(",,", ",");
-            windowIdConversationIdMap.set(windowId, conversationIdsConcatinated);
-            console.log("windowIdConversationIdMap after Deleting ", windowIdConversationIdMap);
-          }
-        });
-      }, i * 1e3);
-    }
-  }
-}
-async function getChatGPTAccessToken() {
-  if (cache.get(KEY_ACCESS_TOKEN)) {
-    return cache.get(KEY_ACCESS_TOKEN);
-  }
-  const resp = await fetch("https://chat.openai.com/api/auth/session");
-  if (resp.status === 403) {
-    throw new Error("CLOUDFLARE");
-  }
-  const data = await resp.json().catch(() => ({}));
-  if (!data.accessToken) {
-    throw new Error("UNAUTHORIZED");
-  }
-  cache.set(KEY_ACCESS_TOKEN, data.accessToken);
-  return data.accessToken;
-}
-var Prompt, userConfigWithDefaultValue, APPSHORTNAME, HALFHOUR, ADAY, one, two, getConversationTitle, countWords, browsertabIdConversationIdMap, windowIdConversationIdMap, KEY_ACCESS_TOKEN, cache, ChatGPTProvider;
-var init_dist = __esm({
-  "dist/index.js"() {
+// dist/index.cjs
+var require_dist = __commonJS({
+  "dist/index.cjs"(exports2) {
     "use strict";
-    Prompt = "Please summarize the paper by author(s) in one concise sentence. Then, list key insights and lessons learned from the paper. Next, generate 3-5 questions that you would like to ask the authors about their work. Finally, provide 3-5 suggestions for related topics or future research directions  based on the content of the paper. If applicable, list at least 5 relevant references from the field of study of the paper. Here is the paper. If the last sentence provided is incomplete just ignore it for summarizing : ";
-    userConfigWithDefaultValue = {
+    Object.defineProperty(exports2, "__esModule", {
+      value: true
+    });
+    var buffer = require("buffer");
+    var dayjs = require("dayjs");
+    var eventsourceParser = require("eventsource-parser");
+    var ExpiryMap = require("expiry-map");
+    var uuid = require("uuid");
+    var Browser = require("webextension-polyfill");
+    var WebSocketAsPromised = require("websocket-as-promised");
+    var lodashEs = require("lodash-es");
+    function _interopDefaultCompat(e) {
+      return e && typeof e === "object" && "default" in e ? e : {
+        default: e
+      };
+    }
+    var dayjs__default = /* @__PURE__ */ _interopDefaultCompat(dayjs);
+    var ExpiryMap__default = /* @__PURE__ */ _interopDefaultCompat(ExpiryMap);
+    var Browser__default = /* @__PURE__ */ _interopDefaultCompat(Browser);
+    var WebSocketAsPromised__default = /* @__PURE__ */ _interopDefaultCompat(WebSocketAsPromised);
+    var Prompt = "Please summarize the paper by author(s) in one concise sentence. Then, list key insights and lessons learned from the paper. Next, generate 3-5 questions that you would like to ask the authors about their work. Finally, provide 3-5 suggestions for related topics or future research directions  based on the content of the paper. If applicable, list at least 5 relevant references from the field of study of the paper. Here is the paper. If the last sentence provided is incomplete just ignore it for summarizing : ";
+    var userConfigWithDefaultValue = {
       triggerMode: "always",
       theme: "auto",
       language: "auto",
@@ -244,13 +58,129 @@ var init_dist = __esm({
       chatgptMode: "Web-Sockets"
       /* WSS */
     };
-    APPSHORTNAME = "SciGPT";
-    HALFHOUR = 30 * 60 * 1e3;
-    ADAY = 24 * 60 * 60 * 1e3;
-    one = 1;
-    two = 2;
-    dayjs().format();
-    getConversationTitle = (bigtext) => {
+    async function getUserConfig() {
+      const result = await Browser__default.default.storage.local.get(Object.keys(userConfigWithDefaultValue));
+      return lodashEs.defaults(result, userConfigWithDefaultValue);
+    }
+    var APPSHORTNAME = "SciGPT";
+    var HALFHOUR = 30 * 60 * 1e3;
+    var ADAY = 24 * 60 * 60 * 1e3;
+    async function* streamAsyncIterable$1(stream) {
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const {
+            done,
+            value
+          } = await reader.read();
+          if (done) {
+            return;
+          }
+          yield value;
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    async function parseSSEResponse(resp, onMessage) {
+      if (!resp.ok) {
+        const error = await resp.json().catch(() => ({}));
+        throw new Error(JSON.stringify(error));
+      }
+      const parser = eventsourceParser.createParser((event) => {
+        console.log("parseSSEResponse parser event", event);
+        if (event.type === "event") {
+          onMessage(event.data);
+        }
+      });
+      for await (const chunk of streamAsyncIterable$1(resp.body)) {
+        const str = new TextDecoder().decode(chunk);
+        console.log("parseSSEResponse str", str);
+        if (str.includes("wss_url")) {
+          console.log("parseSSEResponseChatGPT str", str);
+          onMessage(str);
+        } else {
+          parser.feed(str);
+        }
+      }
+    }
+    async function parseSSEResponse3(resp, onMessage) {
+      if (!resp.ok) {
+        const error = await resp.json().catch(() => ({}));
+        throw new Error(JSON.stringify(error));
+      }
+      eventsourceParser.createParser((event) => {
+        console.log("parseSSEResponse3 parser event", event);
+        if (event.type === "event") {
+          onMessage(event.data);
+        }
+      });
+      for await (const chunk of streamAsyncIterable$1(resp.body)) {
+        const str = new TextDecoder().decode(chunk);
+        console.log("parseSSEResponse3 str", str);
+        const strjson = JSON.parse(str);
+        console.log("parseSSEResponse3 strjson", strjson);
+        onMessage(strjson);
+      }
+    }
+    async function* streamAsyncIterable(stream) {
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const {
+            done,
+            value
+          } = await reader.read();
+          if (done) {
+            return;
+          }
+          yield value;
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    }
+    async function fetchSSE(resource, options) {
+      const {
+        onMessage,
+        ...fetchOptions
+      } = options;
+      const resp = await fetch(resource, fetchOptions);
+      if (!resp.ok) {
+        const error = await resp.json().catch(() => ({}));
+        throw new Error(!lodashEs.isEmpty(error) ? JSON.stringify(error) : "".concat(resp.status, " ").concat(resp.statusText));
+      }
+      const parser = eventsourceParser.createParser((event) => {
+        if (event.type === "event") {
+          onMessage(event.data);
+        }
+      });
+      for await (const chunk of streamAsyncIterable(resp.body)) {
+        const str = new TextDecoder().decode(chunk);
+        console.log("fetchSSE", str);
+        if (str.includes("wss_url")) {
+          onMessage(str);
+        }
+        parser.feed(str);
+      }
+    }
+    var one = 1;
+    var two = 2;
+    dayjs__default.default().format();
+    async function request(token, method, path, data) {
+      return fetch("https://chat.openai.com/backend-api".concat(path), {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer ".concat(token)
+        },
+        body: data === void 0 ? void 0 : JSON.stringify(data)
+      });
+    }
+    function removeCitations(text) {
+      return text.replaceAll(/\u3010\d+\u2020source\u3011/g, "");
+    }
+    var getConversationTitle = (bigtext) => {
       let ret = bigtext.split("\n", 1)[0];
       try {
         ret = ret.split("for summarizing :")[1];
@@ -266,14 +196,102 @@ var init_dist = __esm({
       }
       return ret;
     };
-    countWords = (text) => {
+    var countWords = (text) => {
       return text.trim().split(/\s+/).length;
     };
-    browsertabIdConversationIdMap = /* @__PURE__ */ new Map();
-    windowIdConversationIdMap = /* @__PURE__ */ new Map();
-    KEY_ACCESS_TOKEN = "accessToken";
-    cache = new ExpiryMap(10 * 1e3);
-    ChatGPTProvider = class {
+    async function setChatgptwssIsOpenFlag(isOpen) {
+      const {
+        chatgptwssIsOpenFlag = false
+      } = await Browser__default.default.storage.sync.get("chatgptwssIsOpenFlag");
+      Browser__default.default.storage.sync.set({
+        chatgptwssIsOpenFlag: isOpen
+      });
+      return chatgptwssIsOpenFlag;
+    }
+    async function request_new(token, method, path, data, callback) {
+      return fetch("https://chat.openai.com/backend-api".concat(path), {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer ".concat(token)
+        },
+        body: data === void 0 ? void 0 : JSON.stringify(data)
+      }).then(function(response) {
+        console.log("fetch", token != null, method, path, "response", response);
+        return response.json();
+      }).then(function(data2) {
+        console.log("response data", data2);
+        if (callback) {
+          console.log("callback", callback);
+        }
+      }).catch((error) => {
+        console.error("fetch", token, method, path, "error", error);
+      });
+    }
+    async function sendMessageFeedback(token, data) {
+      await request(token, "POST", "/conversation/message_feedback", data);
+    }
+    async function setConversationProperty(token, conversationId, propertyObject) {
+      await request(token, "PATCH", "/conversation/".concat(conversationId), propertyObject);
+    }
+    var browsertabIdConversationIdMap = /* @__PURE__ */ new Map();
+    var windowIdConversationIdMap = /* @__PURE__ */ new Map();
+    function deleteRecentConversations(token, data) {
+      const now = dayjs__default.default();
+      const startTime = dayjs__default.default(performance.timeOrigin);
+      console.log("startTime", startTime);
+      const convs = data.items;
+      console.log("convs", convs);
+      for (let i = 0; i < convs.length; i++) {
+        const conv_i_time = dayjs__default.default(convs[i].create_time);
+        if (HALFHOUR < now.diff(conv_i_time) && now.diff(conv_i_time) < ADAY && convs[i].title.indexOf(APPSHORTNAME + ":") != -1) {
+          setTimeout(function() {
+            console.log("Deleting", token != null, convs[i].id);
+            setConversationProperty(token, convs[i].id, {
+              is_visible: false
+            });
+            const cloneBTCMap = new Map(browsertabIdConversationIdMap);
+            cloneBTCMap.forEach((ConversationId, tabId, map) => {
+              console.log("Looking for", ConversationId, tabId, "in", map);
+              if (ConversationId === convs[i].id) {
+                console.log("Deleting ", ConversationId, tabId, "from", map);
+                browsertabIdConversationIdMap.delete(tabId);
+                console.log("browsertabIdConversationIdMap after Deleting ", browsertabIdConversationIdMap);
+              }
+            });
+            const cloneWCMap = new Map(windowIdConversationIdMap);
+            cloneWCMap.forEach((conversationIdsConcatinated, windowId, map) => {
+              console.log("Looking for", conversationIdsConcatinated, windowId, "in", map);
+              if (conversationIdsConcatinated.indexOf(convs[i].id) != -1) {
+                console.log("Deleting ", convs[i].id, windowId, "from", map);
+                conversationIdsConcatinated = conversationIdsConcatinated.replace(convs[i].id, "");
+                conversationIdsConcatinated = conversationIdsConcatinated.replace(",,", ",");
+                windowIdConversationIdMap.set(windowId, conversationIdsConcatinated);
+                console.log("windowIdConversationIdMap after Deleting ", windowIdConversationIdMap);
+              }
+            });
+          }, i * 1e3);
+        }
+      }
+    }
+    var KEY_ACCESS_TOKEN = "accessToken";
+    var cache = new ExpiryMap__default.default(10 * 1e3);
+    async function getChatGPTAccessToken() {
+      if (cache.get(KEY_ACCESS_TOKEN)) {
+        return cache.get(KEY_ACCESS_TOKEN);
+      }
+      const resp = await fetch("https://chat.openai.com/api/auth/session");
+      if (resp.status === 403) {
+        throw new Error("CLOUDFLARE");
+      }
+      const data = await resp.json().catch(() => ({}));
+      if (!data.accessToken) {
+        throw new Error("UNAUTHORIZED");
+      }
+      cache.set(KEY_ACCESS_TOKEN, data.accessToken);
+      return data.accessToken;
+    }
+    var ChatGPTProvider = class {
       constructor(token) {
         this.token = token;
         this.token = token;
@@ -345,7 +363,7 @@ var init_dist = __esm({
           body: JSON.stringify({
             action: "next",
             messages: [{
-              id: v4(),
+              id: uuid.v4(),
               role: "user",
               content: {
                 content_type: "text",
@@ -353,7 +371,7 @@ var init_dist = __esm({
               }
             }],
             model: modelName,
-            parent_message_id: params.parentMessageId || v4(),
+            parent_message_id: params.parentMessageId || uuid.v4(),
             conversation_id: params.conversationId,
             arkose_token: params.arkoseToken,
             conversation_mode: {
@@ -424,7 +442,7 @@ var init_dist = __esm({
         console.log("ChatGPTProvider:jj", jj);
         if (jj) {
           const wsAddress = jj["wss_url"];
-          const wsp = new WebSocketAsPromised(wsAddress, {
+          const wsp = new WebSocketAsPromised__default.default(wsAddress, {
             createWebSocket: (url) => {
               console.log("createWebSocket:url", url);
               const ws = new WebSocket(wsAddress, ["Sec-Websocket-Protocol", "json.reliable.webpubsub.azure.v1"]);
@@ -443,10 +461,10 @@ var init_dist = __esm({
             console.log("ChatGPTProvider:setupWSS:messageListener:jjws:", jjws);
             const rawMessage = jjws["data"] ? jjws["data"]["body"] : "";
             console.log("ChatGPTProvider:setupWSS:wsp.onMessage:rawMessage:", rawMessage);
-            const b64decodedMessage = Buffer2.from(rawMessage, "base64");
+            const b64decodedMessage = buffer.Buffer.from(rawMessage, "base64");
             const finalMessageStr = b64decodedMessage.toString();
             console.log("ChatGPTProvider:setupWebsocket:wsp.onMessage:finalMessage:", finalMessageStr);
-            const parser = createParser((parent_message) => {
+            const parser = eventsourceParser.createParser((parent_message) => {
               var _a, _b, _c;
               console.log("ChatGPTProvider:setupWSS:createParser:parent_message", parent_message);
               let data;
@@ -567,8 +585,14 @@ var init_dist = __esm({
         };
       }
     };
+    exports2.ChatGPTProvider = ChatGPTProvider;
+    exports2.getChatGPTAccessToken = getChatGPTAccessToken;
+    exports2.one = one;
+    exports2.sendMessageFeedback = sendMessageFeedback;
+    exports2.setConversationProperty = setConversationProperty;
+    exports2.two = two;
   }
 });
 
 // <stdin>
-Promise.resolve().then(() => init_dist());
+Promise.resolve().then(() => __toESM(require_dist()));
