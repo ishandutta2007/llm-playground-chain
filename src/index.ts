@@ -94,7 +94,7 @@ import Browser from 'webextension-polyfill'
 import WebSocketAsPromised from 'websocket-as-promised'
 import { ChatgptMode, getUserConfig } from './config'
 import { ADAY, APPSHORTNAME, HALFHOUR } from './utils/consts'
-import { parseSSEResponse } from './utils/sse'
+import { parseSSEResponse, parseSSEResponse3 } from './utils/sse'
 import { fetchSSE } from './utils/fetch-sse'
 // import { GenerateAnswerParams, ResponseContent, Provider } from './utils/types'
 
@@ -330,15 +330,53 @@ export class ChatGPTProvider implements Provider {
     }
   }
 
+  async getChatRequirementsToken(params: GenerateAnswerParams) {
+    const resp = await fetch('https://chat.openai.com/backend-api/sentinel/chat-requirements', {
+      method: 'POST',
+      signal: params.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.token}`,
+        conversation_mode_kind: 'primary_assistant',
+      },
+      body: JSON.stringify({
+        conversation_mode_kind: 'primary_assistant',
+      }),
+    })
+    console.log('getChatRequirements:resp:', resp)
+    let retToken = ''
+    await parseSSEResponse3(resp, (message: any) => {
+      console.log('getChatRequirements:message:', message)
+      retToken = message.token
+    })
+    console.log('retToken:', retToken)
+    return retToken
+  }
+
   async generateAnswerBySSE(params: GenerateAnswerParams, cleanup: () => void) {
     console.debug('ChatGPTProvider:generateAnswerBySSE:', params)
     const modelName = await this.getModelName()
+    const chatRequirementsToken = await this.getChatRequirementsToken(params)
     console.debug('ChatGPTProvider:this.token:', this.token)
     console.debug('ChatGPTProvider:modelName:', modelName)
+
+    // This is a fix: https://stackoverflow.com/a/55238033/865220
+    const requestHeaders: HeadersInit = new Headers();
+    requestHeaders.set('Content-Type', 'application/json');
+    requestHeaders.set('Authorization', `Bearer ${this.token}`);
+    requestHeaders.set('Openai-Sentinel-Arkose-Token', params.arkoseToken?params.arkoseToken:"");
+    requestHeaders.set('Openai-Sentinel-Chat-Requirements-Token', chatRequirementsToken);
+
     await fetchSSE('https://chat.openai.com/backend-api/conversation', {
       method: 'POST',
       signal: params.signal,
-      headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}`},
+      headers: requestHeaders,
+      // headers: {
+      //   'Content-Type': 'application/json',
+      //   'Authorization': `Bearer ${this.token}`,
+      //   'Openai-Sentinel-Arkose-Token': params.arkoseToken,
+      //   'Openai-Sentinel-Chat-Requirements-Token': chatRequirementsToken,
+      // },
       body: JSON.stringify({
         action: 'next',
         messages: [
@@ -355,6 +393,14 @@ export class ChatGPTProvider implements Provider {
         parent_message_id: params.parentMessageId || uuidv4(),
         conversation_id: params.conversationId,
         arkose_token: params.arkoseToken,
+        conversation_mode: {
+          kind: 'primary_assistant',
+        },
+        history_and_training_disabled: !1,
+        force_paragen: !1,
+        force_rate_limit: !1,
+        suggestions: [],
+        // websocket_request_id://TODO:still working without it
       }),
       onMessage(message: string) {
 
@@ -427,7 +473,7 @@ export class ChatGPTProvider implements Provider {
       console.log('ChatGPTProvider:setupWebsocket:wsp', wsp)
 
       const openListener = async () => {
-        console.log('ChatGPTProvider:setupWSSopenListener::wsp.onOpen')
+        console.log('ChatGPTProvider:setupWSS:openListener::wsp.onOpen')
         await setChatgptwssIsOpenFlag(true)
       }
 

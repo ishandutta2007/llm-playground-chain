@@ -56,7 +56,7 @@ export async function parseSSEResponse2(resp: Response, onMessage: (message: str
     console.log('parseSSEResponse2_str', str) //str=`{"text":" sometext","is_finished":false}`
     try {
       const strjson = JSON.parse(str)
-      if (strjson.is_finished == true && strjson.finish_reason === 'COMPLETE') {
+      if (strjson.is_finished === true && strjson.finish_reason === 'COMPLETE') {
         onMessage(strjson.text)
         onMessage('[DONE]')
       } else {
@@ -65,5 +65,29 @@ export async function parseSSEResponse2(resp: Response, onMessage: (message: str
     } catch (ex) {
       console.log(ex)
     }
+  }
+}
+
+
+export async function parseSSEResponse3(resp: Response, onMessage: (message: string) => void) {
+  if (!resp.ok) {
+    const error = await resp.json().catch(() => ({}))
+    // if (!isEmpty(error)) {
+    throw new Error(JSON.stringify(error))
+    // }
+    // throw new ChatError(`${resp.status} ${resp.statusText}.` , ErrorCode.NETWORK_ERROR)
+  }
+  const parser = createParser((event) => {
+    console.log('parseSSEResponse3 parser event', event) //event=`{data:'{}',event:'',id='',type=''}`
+    if (event.type === 'event') {
+      onMessage(event.data)
+    }
+  })
+  for await (const chunk of streamAsyncIterable(resp.body!)) {
+    const str = new TextDecoder().decode(chunk)
+    console.log('parseSSEResponse3 str', str)
+    const strjson = JSON.parse(str)
+    console.log('parseSSEResponse3 strjson', strjson) //str=`data:{message:{author:{name="someone"},content:{parts=["sometext"]}}`
+    onMessage(strjson)
   }
 }
