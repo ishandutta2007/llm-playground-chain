@@ -230,24 +230,19 @@ async function getChatGPTAccessToken() {
   cache.set(KEY_ACCESS_TOKEN, data.accessToken);
   return data.accessToken;
 }
-var Prompt, ChatgptMode, userConfigWithDefaultValue, APPSHORTNAME, HALFHOUR, ADAY, one, two, getConversationTitle, countWords, browsertabIdConversationIdMap, windowIdConversationIdMap, KEY_ACCESS_TOKEN, cache, ChatGPTProvider;
+var Prompt, userConfigWithDefaultValue, APPSHORTNAME, HALFHOUR, ADAY, one, two, getConversationTitle, countWords, browsertabIdConversationIdMap, windowIdConversationIdMap, KEY_ACCESS_TOKEN, cache, ChatGPTProvider;
 var init_dist = __esm({
   "dist/index.js"() {
     "use strict";
     Prompt = "Please summarize the paper by author(s) in one concise sentence. Then, list key insights and lessons learned from the paper. Next, generate 3-5 questions that you would like to ask the authors about their work. Finally, provide 3-5 suggestions for related topics or future research directions  based on the content of the paper. If applicable, list at least 5 relevant references from the field of study of the paper. Here is the paper. If the last sentence provided is incomplete just ignore it for summarizing : ";
-    ChatgptMode = /* @__PURE__ */ ((ChatgptMode2) => {
-      ChatgptMode2["SSE"] = "Server-Sent-Events";
-      ChatgptMode2["WSS"] = "Web-Sockets";
-      return ChatgptMode2;
-    })(ChatgptMode || {});
     userConfigWithDefaultValue = {
       triggerMode: "always",
       theme: "auto",
       language: "auto",
       prompt: Prompt,
       promptOverrides: [],
-      chatgptMode: "Server-Sent-Events"
-      /* SSE */
+      chatgptMode: "Web-Sockets"
+      /* WSS */
     };
     APPSHORTNAME = "SciGPT";
     HALFHOUR = 30 * 60 * 1e3;
@@ -564,13 +559,9 @@ var init_dist = __esm({
         const cleanup = () => {
         };
         console.log("ChatGPTProvider:ChatgptMode", config.chatgptMode);
-        if (config.chatgptMode === ChatgptMode.SSE) {
-          this.generateAnswerBySSE(params, cleanup);
-        } else {
-          const regResp = await this.registerWSS(params);
-          await this.setupWSS(params, regResp);
-          this.generateAnswerBySSE(params, cleanup);
-        }
+        const regResp = await this.registerWSS(params);
+        await this.setupWSS(params, regResp);
+        this.generateAnswerBySSE(params, cleanup);
         return {
           cleanup
         };
@@ -581,73 +572,3 @@ var init_dist = __esm({
 
 // <stdin>
 Promise.resolve().then(() => init_dist());
- parser.feed(finalMessageStr);
-            const sequenceId = jjws["sequenceId"];
-            console.log("ChatGPTProvider:doSendMessage:sequenceId:", sequenceId);
-            if (sequenceId === next_check_seqid) {
-              const t = {
-                type: "sequenceAck",
-                sequenceId: next_check_seqid
-              };
-              wsp.send(JSON.stringify(t));
-              next_check_seqid += Math.round(Math.random() * 50);
-            }
-          };
-          wsp.removeAllListeners();
-          wsp.close();
-          wsp.onOpen.addListener(openListener);
-          wsp.onMessage.addListener(messageListener);
-          wsp.onClose.removeListener(messageListener);
-          wsp.open().catch(async (e) => {
-            console.log("ChatGPTProvider:doSendMessage:showError:Error caught while opening ws", e);
-            wsp.removeAllListeners();
-            wsp.close();
-            await setChatgptwssIsOpenFlag(false);
-            params.onEvent({
-              type: "error",
-              message: e == null ? void 0 : e.message
-            });
-          });
-        }
-      }
-      async registerWSS(params) {
-        const resp = await fetch("https://chat.openai.com/backend-api/register-websocket", {
-          method: "POST",
-          signal: params.signal,
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "Bearer ".concat(this.token)
-          },
-          body: void 0
-        });
-        return resp;
-      }
-      async generateAnswer(params) {
-        console.log("ChatGPTProvider:generateAnswer", params.arkoseToken);
-        const config = await getUserConfig();
-        const cleanup = () => {
-        };
-        console.log("ChatGPTProvider:ChatgptMode", config.chatgptMode);
-        if (config.chatgptMode === ChatgptMode.SSE) {
-          this.generateAnswerBySSE(params, cleanup);
-        } else {
-          const regResp = await this.registerWSS(params);
-          await this.setupWSS(params, regResp);
-          this.generateAnswerBySSE(params, cleanup);
-        }
-        return {
-          cleanup
-        };
-      }
-    };
-    exports2.ChatGPTProvider = ChatGPTProvider;
-    exports2.getChatGPTAccessToken = getChatGPTAccessToken;
-    exports2.one = one;
-    exports2.sendMessageFeedback = sendMessageFeedback;
-    exports2.setConversationProperty = setConversationProperty;
-    exports2.two = two;
-  }
-});
-
-// <stdin>
-Promise.resolve().then(() => __toESM(require_dist()));
