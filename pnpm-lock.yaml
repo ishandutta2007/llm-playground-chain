@@ -88,6 +88,9 @@ devDependencies:
   esno:
     specifier: ^0.16.3
     version: 0.16.3
+  js-sha3:
+    specifier: ^0.9.3
+    version: 0.9.3
   lint-staged:
     specifier: ^13.0.2
     version: 13.0.2
@@ -3002,7 +3005,7 @@ packages:
       read-pkg: 9.0.1
       registry-auth-token: 5.0.2
       semantic-release: 23.0.6(typescript@5.4.3)
-      semver: 7.3.7
+      semver: 7.6.0
       tempy: 3.1.0
     dev: true
 
@@ -3934,7 +3937,7 @@ packages:
       normalize-path: 3.0.0
       readdirp: 3.6.0
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /ci-info@3.3.2:
@@ -6062,14 +6065,6 @@ packages:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
     dev: true
 
-  /fsevents@2.3.2:
-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
-    os: [darwin]
-    requiresBuild: true
-    dev: true
-    optional: true
-
   /fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -7076,6 +7071,10 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
+  /js-sha3@0.9.3:
+    resolution: {integrity: sha512-BcJPCQeLg6WjEx3FE591wVAevlli8lxsxm9/FzV4HXkV49TmBH38Yvrpce6fjbADGMKFrBMGTqrVz3qPIZ88Gg==}
+    dev: true
+
   /js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
     dev: true
@@ -7770,7 +7769,7 @@ packages:
     dependencies:
       hosted-git-info: 7.0.1
       is-core-module: 2.9.0
-      semver: 7.3.7
+      semver: 7.6.0
       validate-npm-package-license: 3.0.4
     dev: true
 
@@ -8803,7 +8802,7 @@ packages:
       rollup: 2.75.7
       typescript: 4.7.4
     optionalDependencies:
-      '@babel/code-frame': 7.16.7
+      '@babel/code-frame': 7.24.2
     dev: true
 
   /rollup-plugin-esbuild@4.9.1(esbuild@0.14.47)(rollup@2.75.7):
@@ -8876,7 +8875,7 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /rollup@3.29.4:
@@ -8884,7 +8883,7 @@ packages:
     engines: {node: '>=14.18.0', npm: '>=8.0.0'}
     hasBin: true
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /rollup@4.13.0:
@@ -9015,7 +9014,7 @@ packages:
       p-reduce: 3.0.0
       read-pkg-up: 11.0.0
       resolve-from: 5.0.0
-      semver: 7.3.7
+      semver: 7.6.0
       semver-diff: 4.0.0
       signale: 1.4.0
       yargs: 17.7.2
@@ -9028,7 +9027,7 @@ packages:
     resolution: {integrity: sha512-0Ju4+6A8iOnpL/Thra7dZsSlOHYAHIeMxfhWQRI1/VLcT3WDBZKKtQt/QkBOsiIN9ZpuvHE6cGZ0x4glCMmfiA==}
     engines: {node: '>=12'}
     dependencies:
-      semver: 7.3.7
+      semver: 7.6.0
     dev: true
 
   /semver-regex@4.0.5:
@@ -9763,7 +9762,7 @@ packages:
       '@esbuild-kit/core-utils': 2.0.1
       '@esbuild-kit/esm-loader': 2.3.0
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /tunnel-agent@0.6.0:
@@ -10127,7 +10126,7 @@ packages:
       resolve: 1.22.1
       rollup: 2.75.7
     optionalDependencies:
-      fsevents: 2.3.2
+      fsevents: 2.3.3
     dev: true
 
   /vite@5.2.6(@types/node@14.18.63):
