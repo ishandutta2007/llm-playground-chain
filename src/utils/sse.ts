@@ -68,7 +68,6 @@ export async function parseSSEResponse2(resp: Response, onMessage: (message: str
   }
 }
 
-
 export async function parseSSEResponse3(resp: Response, onMessage: (message: string) => void) {
   if (!resp.ok) {
     const error = await resp.json().catch(() => ({}))
@@ -77,7 +76,8 @@ export async function parseSSEResponse3(resp: Response, onMessage: (message: str
     // }
     // throw new ChatError(`${resp.status} ${resp.statusText}.` , ErrorCode.NETWORK_ERROR)
   }
-  const parser = createParser((event) => {
+  // const parser = 
+  createParser((event) => {
     console.log('parseSSEResponse3 parser event', event) //event=`{data:'{}',event:'',id='',type=''}`
     if (event.type === 'event') {
       onMessage(event.data)

@@ -53,6 +53,8 @@ export interface GenerateAnswerParams {
   conversationId?: string
   parentMessageId?: string
   arkoseToken?: string
+  screenWidth?: number
+  screenHeight?: number
 }
 
 /**
@@ -89,6 +91,7 @@ import { Buffer } from 'buffer'
 import dayjs from 'dayjs'
 import { createParser } from 'eventsource-parser'
 import ExpiryMap from 'expiry-map'
+import { sha3_512 } from 'js-sha3'
 import { v4 as uuidv4 } from 'uuid'
 import Browser from 'webextension-polyfill'
 import WebSocketAsPromised from 'websocket-as-promised'
@@ -101,7 +104,7 @@ import { fetchSSE } from './utils/fetch-sse'
 dayjs().format()
 
 async function request(token: string, method: string, path: string, data?: unknown) {
-  return fetch(`https://chat.openai.com/backend-api${path}`, {
+  return fetch(`https://chatgpt.com/backend-api${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -161,7 +164,7 @@ async function request_new(
   data?: unknown,
   callback?: unknown,
 ) {
-  return fetch(`https://chat.openai.com/backend-api${path}`, {
+  return fetch(`https://chatgpt.com/backend-api${path}`, {
     method,
     headers: {
       'Content-Type': 'application/json',
@@ -276,7 +279,7 @@ export async function getChatGPTAccessToken(): Promise<string> {
   if (cache.get(KEY_ACCESS_TOKEN)) {
     return cache.get(KEY_ACCESS_TOKEN)
   }
-  const resp = await fetch('https://chat.openai.com/api/auth/session')
+  const resp = await fetch('https://chatgpt.com/api/auth/session')
   if (resp.status === 403) {
     throw new Error('CLOUDFLARE')
   }
@@ -330,14 +333,27 @@ export class ChatGPTProvider implements Provider {
     }
   }
 
-  async getChatRequirementsToken(params: GenerateAnswerParams) {
-    const resp = await fetch('https://chat.openai.com/backend-api/sentinel/chat-requirements', {
+  private async getDeviceId() {
+    let { value } = await Browser.storage.sync.get('oai_device_id')
+    if (!value) {
+      value = uuidv4()
+      Browser.storage.sync.set({ oai_device_id: value })
+    }
+    return value
+  }
+
+  private async getChatRequirementsToken(params: GenerateAnswerParams) {
+    const deviceId = await this.getDeviceId()
+    const resp = await fetch('https://chatgpt.com/backend-api/sentinel/chat-requirements', {
       method: 'POST',
       signal: params.signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${this.token}`,
         conversation_mode_kind: 'primary_assistant',
+        'Oai-Device-Id': deviceId,
+        'Oai-Language': 'en-US',
+        Priority: 'u=1, i',
       },
       body: JSON.stringify({
         conversation_mode_kind: 'primary_assistant',
@@ -345,18 +361,85 @@ export class ChatGPTProvider implements Provider {
     })
     console.log('getChatRequirements:resp:', resp)
     let retToken = ''
+    let retArkoseDx = ''
+    let proofofworkSeed = ''
+    let proofofworkDifficulty = ''
+    let proofofworkRequired = ''
     await parseSSEResponse3(resp, (message: any) => {
       console.log('getChatRequirements:message:', message)
       retToken = message.token
+      retArkoseDx = message.arkose?.dx as string
+      proofofworkSeed = message.proofofwork?.seed as string
+      proofofworkDifficulty = message.proofofwork?.difficulty as string
+      proofofworkRequired = message.proofofwork?.required as string
     })
     console.log('retToken:', retToken)
-    return retToken
+    return [retToken, retArkoseDx, proofofworkSeed, proofofworkDifficulty, proofofworkRequired]
+  }
+
+  private getProofConfig(screenWidth: number, screenHeight: number) {
+    return [
+      navigator.hardwareConcurrency + screenWidth + screenHeight,
+      new Date().toString(),
+      4294705152,
+      0,
+      navigator.userAgent,
+    ]
+  }
+
+  private async calcProofToken(
+    seed: string,
+    diff: string,
+    screenWidth: number,
+    screenHeight: number,
+  ) {
+    const config = this.getProofConfig(screenWidth, screenHeight)
+    for (let i = 0; i < 1e5; i++) {
+      config[3] = i
+      const jsonData = JSON.stringify(config)
+      const base = btoa(String.fromCharCode(...new TextEncoder().encode(jsonData)))
+      const hashHex = sha3_512(seed + base)
+      console.debug('POW', i, base, hashHex)
+      if (hashHex.slice(0, diff.length) <= diff) {
+        return 'gAAAAAB' + base
+      }
+    }
+    const base = btoa(seed)
+    return 'gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D' + base
   }
 
   async generateAnswerBySSE(params: GenerateAnswerParams, cleanup: () => void) {
     console.debug('ChatGPTProvider:generateAnswerBySSE:', params)
     const modelName = await this.getModelName()
-    const chatRequirementsToken = await this.getChatRequirementsToken(params)
+    console.debug('ChatGPTProvider:modelName:', modelName)
+    const [
+      chatRequirementsToken,
+      chatRequirementsAkroseDx,
+      chatRequirementsProofofworkSeed,
+      chatRequirementsProofofworkDifficulty,
+      chatRequirementsProofofworkRequired,
+    ] = await this.getChatRequirementsToken(params)
+    console.log(
+      'ChatGPTProvider:[chatRequirementsToken, chatRequirementsAkroseDx, chatRequirementsProofofworkSeed, chatRequirementsProofofworkDifficulty, chatRequirementsProofofworkRequired]',
+      [
+        chatRequirementsToken,
+        chatRequirementsAkroseDx,
+        chatRequirementsProofofworkSeed,
+        chatRequirementsProofofworkDifficulty,
+        chatRequirementsProofofworkRequired,
+      ],
+    )
+    const deviceId = await this.getDeviceId()
+    const websocketRequestId = uuidv4()
+    let proofToken: string | undefined
+    if (chatRequirementsProofofworkRequired) {
+      proofToken = await this.calcProofToken(
+        chatRequirementsProofofworkSeed as string,
+        chatRequirementsProofofworkDifficulty as string,
+        params.screenWidth as number,
+        params.screenHeight as number,
+      )
+    }
     console.debug('ChatGPTProvider:this.token:', this.token)
     console.debug('ChatGPTProvider:modelName:', modelName)
 
@@ -364,25 +447,24 @@ export class ChatGPTProvider implements Provider {
     const requestHeaders: HeadersInit = new Headers();
     requestHeaders.set('Content-Type', 'application/json');
     requestHeaders.set('Authorization', `Bearer ${this.token}`);
-    requestHeaders.set('Openai-Sentinel-Arkose-Token', params.arkoseToken?params.arkoseToken:"");
+    // requestHeaders.set('Openai-Sentinel-Arkose-Token', params.arkoseToken?params.arkoseToken:"");
     requestHeaders.set('Openai-Sentinel-Chat-Requirements-Token', chatRequirementsToken);
+    requestHeaders.set('Oai-Device-Id', deviceId);
+    requestHeaders.set('Oai-Language', 'en-US');
+    if (proofToken){
+      requestHeaders.set('Openai-Sentinel-Proof-Token', proofToken);
+    }
 
-    await fetchSSE('https://chat.openai.com/backend-api/conversation', {
+    await fetchSSE('https://chatgpt.com/backend-api/conversation', {
       method: 'POST',
       signal: params.signal,
       headers: requestHeaders,
-      // headers: {
-      //   'Content-Type': 'application/json',
-      //   'Authorization': `Bearer ${this.token}`,
-      //   'Openai-Sentinel-Arkose-Token': params.arkoseToken,
-      //   'Openai-Sentinel-Chat-Requirements-Token': chatRequirementsToken,
-      // },
       body: JSON.stringify({
         action: 'next',
         messages: [
           {
             id: uuidv4(),
-            role: 'user',
+            author: { role: 'user' },
             content: {
               content_type: 'text',
               parts: [params.prompt],
@@ -391,16 +473,18 @@ export class ChatGPTProvider implements Provider {
         ],
         model: modelName,
         parent_message_id: params.parentMessageId || uuidv4(),
-        conversation_id: params.conversationId,
+        // conversation_id: params.conversationId,
         arkose_token: params.arkoseToken,
         conversation_mode: {
           kind: 'primary_assistant',
         },
         history_and_training_disabled: !1,
+        force_nulligen: !1,
         force_paragen: !1,
         force_rate_limit: !1,
+        force_paragen_model_slug: '',
         suggestions: [],
-        // websocket_request_id://TODO:still working without it
+        websocket_request_id: websocketRequestId,
       }),
       onMessage(message: string) {
 
@@ -573,7 +657,7 @@ export class ChatGPTProvider implements Provider {
   }
 
   async registerWSS(params: GenerateAnswerParams) {
-    const resp = await fetch('https://chat.openai.com/backend-api/register-websocket', {
+    const resp = await fetch('https://chatgpt.com/backend-api/register-websocket', {
       method: 'POST',
       signal: params.signal,
       headers: {
