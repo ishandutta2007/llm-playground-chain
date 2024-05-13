@@ -1,15 +1,7 @@
 /**
- * Does something useful for sure
- * @returns 1
- * @public
+ * ChatGPT Code starts here
  */
-export const one = 1
-/**
- * Does something useful for sure
- * @returns 2
- * @public
- */
-export const two = 2
+
 
 /**
  * Does something useful for sure
@@ -40,6 +32,11 @@ export type Event =
       type: 'error'
       message: string
     }
+
+interface ConversationContext {
+  requestParams: Awaited<ReturnType<typeof fetchRequestParams>>
+  contextIds: [string, string, string]
+}
 
 /**
  * Does something useful for sure
@@ -692,4 +689,373 @@ export class ChatGPTProvider implements Provider {
 }
 
 
+/**
+ * BARD Code starts here
+ */
+
+// import ExpiryMap from 'expiry-map'
+import { ofetch } from 'ofetch'
+
+// import { getUserConfig } from '~config'
+// import { ConversationContext, GenerateAnswerParams, Provider } from '../types'
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export enum ErrorCode {
+  CONVERSATION_LIMIT = 'CONVERSATION_LIMIT',
+  UNKOWN_ERROR = 'UNKOWN_ERROR',
+  CHATGPT_CLOUDFLARE = 'CHATGPT_CLOUDFLARE',
+  CHATGPT_UNAUTHORIZED = 'CHATGPT_UNAUTHORIZED',
+  GPT4_MODEL_WAITLIST = 'GPT4_MODEL_WAITLIST',
+  BING_UNAUTHORIZED = 'BING_UNAUTHORIZED',
+  BING_FORBIDDEN = 'BING_FORBIDDEN',
+  API_KEY_NOT_SET = 'API_KEY_NOT_SET',
+  BARD_EMPTY_RESPONSE = 'BARD_EMPTY_RESPONSE',
+  MISSING_POE_HOST_PERMISSION = 'MISSING_POE_HOST_PERMISSION',
+  POE_UNAUTHORIZED = 'POE_UNAUTHORIZED',
+  MISSING_HOST_PERMISSION = 'MISSING_HOST_PERMISSION',
+  XUNFEI_UNAUTHORIZED = 'XUNFEI_UNAUTHORIZED',
+}
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export class ChatError extends Error {
+  code: ErrorCode
+  constructor(message: string, code: ErrorCode) {
+    super(message)
+    this.code = code
+  }
+}
+
+// async function request(token: string, method: string, path: string, data?: unknown) {
+//   return fetch(`https://chatgpt.com/backend-api${path}`, {
+//     method,
+//     headers: {
+//       'Content-Type': 'application/json',
+//       Authorization: `Bearer ${token}`,
+//     },
+//     body: data === undefined ? undefined : JSON.stringify(data),
+//   })
+// }
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export async function sendMessageFeedbackBard(data: unknown) {
+  console.log('TODO: Currently it is dummy, no feedback is actually sent')
+  console.log('data:', data)
+  // await request(token, 'POST', '/conversation/message_feedback', data);
+}
+
+// export async function setConversationProperty(
+//   token: string,
+//   conversationId: string,
+//   propertyObject: object,
+// ) {
+//   await request(token, 'PATCH', `/conversation/${conversationId}`, propertyObject)
+// }
+
+// const KEY_ACCESS_TOKEN = 'accessToken'
+
+// const cache = new ExpiryMap(10 * 1000)
+
+// export async function getBardAccessToken(): Promise<string> {
+//   if (cache.get(KEY_ACCESS_TOKEN)) {
+//     return cache.get(KEY_ACCESS_TOKEN)
+//   }
+//   const resp = await fetch('https://chatgpt.com/api/auth/session')
+//   if (resp.status === 403) {
+//     throw new Error('CLOUDFLARE')
+//   }
+//   const data = await resp.json().catch(() => ({}))
+//   if (!data.accessToken) {
+//     throw new Error('UNAUTHORIZED')
+//   }
+//   cache.set(KEY_ACCESS_TOKEN, data.accessToken)
+//   return data.accessToken
+// }
+
+
+/**
+ * Does something useful with BARD for sure
+ * @param token - access token
+ * @returns 1
+ * @public
+ */
+export class BARDProvider implements Provider {
+  private conversationContext?: ConversationContext
+
+  constructor(private token: string) {
+    this.token = token
+  }
+
+  private extractFromHTML(variableName: string, html: string) {
+    const regex = new RegExp(`"${variableName}":"([^"]+)"`)
+    const match = regex.exec(html)
+    return match?.[1]
+  }
+
+  private async fetchRequestParams() {
+    const config = await getUserConfig()
+    const html = await ofetch(config.bardSubdomain + '/faq')
+    const atValue = this.extractFromHTML('SNlM0e', html)
+    const blValue = this.extractFromHTML('cfb2h', html)
+    return { atValue, blValue }
+  }
+
+  private async parseBardResponseForImagesTab(resp: string) {
+    console.log('parseBardResponseForImagesTab:resp:', resp)
+    const config = await getUserConfig()
+    const data = JSON.parse(resp.split('\n')[3])
+    const payload = JSON.parse(data[0][2])
+    if (!payload) {
+      throw new ChatError(
+        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        ErrorCode.BARD_EMPTY_RESPONSE,
+      )
+    }
+    console.debug('parseBardResponseForImagesTab:bard response payload', payload)
+
+    try {
+      let text = payload[4][0][1][0] as string
+      const images = payload[4][0][4] || []
+      for (const image of images) {
+        const [media, source, placeholder] = image
+        text = text.replace(placeholder, `[![${media[4]}](${media[0][0]})](${source[0][0]})`)
+      }
+      console.log('parseBardResponseForImagesTab:text/images', text)
+      console.log('parseBardResponseForImagesTab:images.length', images.length)
+      if (images.length === 0)
+        text = "Sorry I couldn't find any images corresponding to this search query"
+      return {
+        text,
+        ids: [...payload[1], payload[4][0][0]] as [string, string, string],
+      }
+    } catch (ex) {
+      console.log('No text/images', ex)
+    }
+
+    //actually the following code was meant for videos but sometimes Bard returns this format when asked for images
+    try {
+      console.log('parseBardResponseForImagesTab:payload', payload)
+      const datasplit = resp.split('\n')
+      for (let i = 0; i < datasplit.length; i++) {
+        console.log('parseBardResponseForImagesTab:', i, '=>', datasplit[i])
+        try {
+          const payloadagain = JSON.parse(JSON.parse(datasplit[i])[0][2])
+          console.log('parseBardResponseForImagesTab:payloadagain', payloadagain)
+          try {
+            if (payloadagain[4]?.[0]?.[1]?.[0]) {
+              const text = payloadagain[4][0][1][0] as string
+              if (payloadagain[1] && payloadagain[4]?.[0]?.[0]) {
+                return {
+                  text,
+                  ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
+                }
+              } else {
+                return {
+                  text,
+                  ids: [],
+                }
+              }
+            }
+          } catch (e0) {
+            console.log('parseBardResponseForImagesTab:Failed payloadagain[4][0][1][0] for ', i, e0)
+          }
+        } catch (e1) {
+          console.log('parseBardResponseForImagesTab:Failed JSON for part ', i, e1)
+        }
+      }
+    } catch (e2) {
+      console.log('parseBardResponseForImagesTab:Reached end', e2)
+    }
+
+    //if it has reached here means no image was found
+    const text = 'Sorry I could not find any image corresponding to this search query'
+    return {
+      text,
+      ids: [],
+    }
+  }
+
+  private async parseBardResponseForVideosTab(resp: string) {
+    console.log('parseBardResponseForVideosTab')
+    const config = await getUserConfig()
+    const data = JSON.parse(resp.split('\n')[3])
+    const payload = JSON.parse(data[0][2])
+    if (!payload) {
+      throw new ChatError(
+        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        ErrorCode.BARD_EMPTY_RESPONSE,
+      )
+    }
+    console.debug('parseBardResponseForVideosTab:bard response payload', payload)
+
+    try {
+      console.log('parseBardResponseForVideosTab:payload', payload)
+      const datasplit = resp.split('\n')
+      let payloadagain
+      for (let i = 0; i < datasplit.length; i++) {
+        console.log(i, '=>', datasplit[i])
+        if (datasplit[i].includes('videos')) {
+          payloadagain = JSON.parse(JSON.parse(datasplit[i])[0][2])
+          break
+        }
+      }
+      console.log('parseBardResponseForVideosTab:payloadagain', payloadagain)
+      const text = payloadagain[4][0][1][0] as string
+      console.log('parseBardResponseForVideosTab:video text', text)
+      return {
+        text,
+        ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
+      }
+    } catch (ex) {
+      console.log('parseBardResponseForVideosTab:No videos', ex)
+    }
+
+    //if it has reached here means neither any image nor any video was found
+    const text = 'Sorry I could not find any video corresponding to this search query'
+    return {
+      text,
+      ids: [],
+    }
+  }
+
+  private async parseBardResponse(resp: string, displayTab: string) {
+    if (displayTab === 'Images') return this.parseBardResponseForImagesTab(resp)
+    if (displayTab === 'Videos') return this.parseBardResponseForVideosTab(resp)
+    const config = await getUserConfig()
+    const data = JSON.parse(resp.split('\n')[3])
+    const payload = JSON.parse(data[0][2])
+    if (!payload) {
+      throw new ChatError(
+        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        ErrorCode.BARD_EMPTY_RESPONSE,
+      )
+    }
+    console.debug('bard response payload', payload)
+
+    try {
+      let text = payload[4][0][1][0] as string
+      const images = payload[4][0][4] || []
+      for (const image of images) {
+        const [media, source, placeholder] = image
+        text = text.replace(placeholder, `[![${media[4]}](${media[0][0]})](${source[0][0]})`)
+      }
+      console.log('text/images', text)
+      console.log('images.length', images.length)
+      return {
+        text,
+        ids: [...payload[1], payload[4][0][0]] as [string, string, string],
+      }
+    } catch (ex) {
+      console.log('No text/images', ex)
+    }
+
+    //if it has reached here means neither any image nor any video was found
+    try {
+      const datasplit = resp.split('\n')
+      let payloadagain
+      let parseable = 0
+      for (let i = 0; i < datasplit.length; i++) {
+        console.log(i, 'nc=>', datasplit[i])
+        try {
+          payloadagain = JSON.parse(JSON.parse(datasplit[i])[0][2])
+          parseable += 1
+          if (parseable === 2) break
+        } catch (ex) {
+          console.log('Non parseable')
+        }
+      }
+      console.log('payloadagain(nc)', payloadagain)
+      text = payloadagain[4][0][1][0] as string
+      console.log('video text(nc)', text)
+      return {
+        text,
+        ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
+      }
+    } catch (ex) {
+      console.log('New case', ex)
+    }
+  }
+
+  private async generateReqId() {
+    return Math.floor(Math.random() * 900000) + 100000
+  }
+
+  async generateAnswer(params: GenerateAnswerParams) {
+    const config = await getUserConfig()
+    // let conversationId: string | undefined
+    const cleanup = () => {
+      // if (conversationId) {
+      //   setConversationProperty(this.token, conversationId, { is_visible: false })
+      // }
+    }
+    this.conversationContext = params.conversationContext
+
+    if (!this.conversationContext) {
+      this.conversationContext = {
+        requestParams: await this.fetchRequestParams(),
+        contextIds: ['', '', ''],
+      }
+    }
+    const { requestParams, contextIds } = this.conversationContext
+    console.debug('request ids:', contextIds)
+    const resp = await ofetch(
+      config.bardSubdomain +
+        '/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate',
+      {
+        method: 'POST',
+        signal: params.signal,
+        query: {
+          bl: requestParams.blValue,
+          _reqid: this.generateReqId(),
+          rt: 'c',
+        },
+        body: new URLSearchParams({
+          at: requestParams.atValue!,
+          'f.req': JSON.stringify([
+            null,
+            `[[${JSON.stringify(params.prompt)}],null,${JSON.stringify(contextIds)}]`,
+          ]),
+        }),
+        parseResponse: (txt) => txt,
+      },
+    )
+    const { text, ids } = await this.parseBardResponse(resp, params.displayTab)
+    console.debug('text:', text)
+    console.debug('response ids:', ids)
+    this.conversationContext.contextIds = ids
+
+    if (text) {
+      // conversationId = 'dataconversation_id'
+      params.onEvent({
+        type: 'answer',
+        data: {
+          text,
+          // messageId: 'datamessage.id',
+          // conversationId: 'dataconversation_id',
+          // parentMessageId: 'dataparent_message_id',
+          conversationContext: this.conversationContext,
+        },
+      })
+    }
+
+    params.onEvent({ type: 'done' })
+    cleanup()
+    return { cleanup }
+  }
+
+  resetConversation() {
+    this.conversationContext = undefined
+  }
+}
 

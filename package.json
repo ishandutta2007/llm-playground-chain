@@ -73,6 +73,7 @@
     "eventsource-parser": "^1.0.0",
     "expiry-map": "^2.0.0",
     "lodash-es": "^4.17.21",
+    "ofetch": "^1.0.1",
     "rollup-plugin-includepaths": "^0.2.4",
     "uuid": "^9.0.0",
     "webextension-polyfill": "^0.10.0",
