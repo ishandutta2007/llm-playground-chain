@@ -90,7 +90,7 @@ import { sha3_512 } from 'js-sha3'
 import { v4 as uuidv4 } from 'uuid'
 import Browser from 'webextension-polyfill'
 import WebSocketAsPromised from 'websocket-as-promised'
-import { ChatgptMode, getUserConfig } from './config'
+// import { ChatgptMode, getUserConfigForLLM } from './config'
 import { ADAY, APPSHORTNAME, HALFHOUR } from './utils/consts'
 import { parseSSEResponse, parseSSEResponse3 } from './utils/sse'
 import { fetchSSE } from './utils/fetch-sse'
@@ -293,11 +293,14 @@ export async function getChatGPTAccessToken(): Promise<string> {
  * @public
  */
 export class ChatGPTProvider implements Provider {
-  constructor(private token: string) {
-    this.token = token
+  private token:string
+  private userconfig?:any
+  constructor(private tok: string, private config: any) {
+    this.token = tok
+    this.userconfig = config
     //Brute:
     request_new(
-      token,
+      tok,
       'GET',
       '/conversations?offset=0&limit=100&order=updated',
       undefined,
@@ -667,14 +670,14 @@ export class ChatGPTProvider implements Provider {
   async generateAnswer(params: GenerateAnswerParams) {
     console.log('ChatGPTProvider:generateAnswer', params.arkoseToken)
     // let conversationId: string | undefined
-    const config = await getUserConfig()
+    // const config = await getUserConfigForLLM()
     const cleanup = () => {
       // if (conversationId) {
       // setConversationProperty(this.token, conversationId, { is_visible: false })
       // }
     }
 
-    console.log('ChatGPTProvider:ChatgptMode', config.chatgptMode)
+    // console.log('ChatGPTProvider:ChatgptMode', this.userconfig.chatgptMode)
     // if (config.chatgptMode === ChatgptMode.SSE) {
     //   this.generateAnswerBySSE(params, cleanup)
     // } else {
@@ -785,15 +788,19 @@ export async function sendMessageFeedbackBard(data: unknown) {
 
 /**
  * Does something useful with BARD for sure
- * @param token - access token
+ * @param userconfig - access userconfig
  * @returns 1
  * @public
  */
 export class BARDProvider implements Provider {
   private conversationContext?: any
+  private userconfig?:any
 
-  constructor(private token: string) {
-    this.token = token
+  // constructor(private tok: string) {
+  //   this.token = tok
+  // }
+  constructor(private config: any) {
+    this.userconfig = config
   }
 
   private extractFromHTML(variableName: string, html: string) {
@@ -803,8 +810,10 @@ export class BARDProvider implements Provider {
   }
 
   private async fetchRequestParams() {
-    const config = await getUserConfig()
-    const html = await ofetch(config.bardSubdomain + '/faq')
+    console.log("fetchRequestParams():this.userconfig", this.userconfig)
+    // const userconfig = await getUserConfigForLLM()
+    // console.log("fetchRequestParams():config", config)
+    const html = await ofetch(this.userconfig.bardSubdomain + '/faq')
     const atValue = this.extractFromHTML('SNlM0e', html)
     const blValue = this.extractFromHTML('cfb2h', html)
     return { atValue, blValue }
@@ -812,12 +821,12 @@ export class BARDProvider implements Provider {
 
   private async parseBardResponseForImagesTab(resp: string) {
     console.log('parseBardResponseForImagesTab:resp:', resp)
-    const config = await getUserConfig()
+    // const config = await getUserConfigForLLM()
     const data = JSON.parse(resp.split('\n')[3])
     const payload = JSON.parse(data[0][2])
     if (!payload) {
       throw new ChatError(
-        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        'Failed to access Gemini, make sure you are logged in at ' + this.userconfig.bardSubdomain,
         ErrorCode.BARD_EMPTY_RESPONSE,
       )
     }
@@ -887,12 +896,12 @@ export class BARDProvider implements Provider {
 
   private async parseBardResponseForVideosTab(resp: string) {
     console.log('parseBardResponseForVideosTab')
-    const config = await getUserConfig()
+    // const config = await getUserConfigForLLM()
     const data = JSON.parse(resp.split('\n')[3])
     const payload = JSON.parse(data[0][2])
     if (!payload) {
       throw new ChatError(
-        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        'Failed to access Gemini, make sure you are logged in at ' + this.userconfig.bardSubdomain,
         ErrorCode.BARD_EMPTY_RESPONSE,
       )
     }
@@ -931,12 +940,12 @@ export class BARDProvider implements Provider {
   private async parseBardResponse(resp: string, displayTab: string) {
     if (displayTab === 'Images') return this.parseBardResponseForImagesTab(resp)
     if (displayTab === 'Videos') return this.parseBardResponseForVideosTab(resp)
-    const config = await getUserConfig()
+    // const config = await getUserConfigForLLM()
     const data = JSON.parse(resp.split('\n')[3])
     const payload = JSON.parse(data[0][2])
     if (!payload) {
       throw new ChatError(
-        'Failed to access Gemini, make sure you are logged in at ' + config.bardSubdomain,
+        'Failed to access Gemini, make sure you are logged in at ' + this.userconfig.bardSubdomain,
         ErrorCode.BARD_EMPTY_RESPONSE,
       )
     }
@@ -992,7 +1001,7 @@ export class BARDProvider implements Provider {
   }
 
   async generateAnswer(params: GenerateAnswerParams) {
-    const config = await getUserConfig()
+    // const config = await getUserConfigForLLM()
     // let conversationId: string | undefined
     const cleanup = () => {
       // if (conversationId) {
@@ -1010,7 +1019,7 @@ export class BARDProvider implements Provider {
     const { requestParams, contextIds } = this.conversationContext
     console.debug('request ids:', contextIds)
     const resp = await ofetch(
-      config.bardSubdomain +
+      this.userconfig.bardSubdomain +
         '/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate',
       {
         method: 'POST',
