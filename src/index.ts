@@ -288,19 +288,16 @@ export async function getChatGPTAccessToken(): Promise<string> {
 
 /**
  * Does something useful for sure
- * @param token - access token
+ * @param token - string
+ *        userconfig - any
  * @returns 1
  * @public
  */
 export class ChatGPTProvider implements Provider {
-  private token:string
-  private userconfig?:any
-  constructor(private tok: string, private config: any) {
-    this.token = tok
-    this.userconfig = config
+  constructor(private token: string, private userconfig: any) {
     //Brute:
     request_new(
-      tok,
+      token,
       'GET',
       '/conversations?offset=0&limit=100&order=updated',
       undefined,
@@ -724,6 +721,8 @@ export enum ErrorCode {
 
 /**
  * Does something useful for sure
+ * @param message - string
+ *        code - any
  * @returns 1
  * @public
  */
@@ -788,19 +787,15 @@ export async function sendMessageFeedbackBard(data: unknown) {
 
 /**
  * Does something useful with BARD for sure
- * @param userconfig - access userconfig
+ * @param userconfig
+ * @param token - string
+ *        userconfig - any
  * @returns 1
  * @public
  */
 export class BARDProvider implements Provider {
   private conversationContext?: any
-  private userconfig?:any
-
-  // constructor(private tok: string) {
-  //   this.token = tok
-  // }
-  constructor(private config: any) {
-    this.userconfig = config
+  constructor(private token: string, private userconfig: any) {
   }
 
   private extractFromHTML(variableName: string, html: string) {
