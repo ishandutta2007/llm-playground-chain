@@ -10,9 +10,10 @@
  */
 export interface Answer {
   text: string
-  messageId: string
-  conversationId: string
-  parentMessageId: string
+  messageId?: string //used in chatgpt
+  conversationId?: string //used in chatgpt
+  parentMessageId?: string //used in chatgpt
+  conversationContext?: any //used in bard
 }
 
 /**
@@ -33,11 +34,6 @@ export type Event =
       message: string
     }
 
-interface ConversationContext {
-  requestParams: Awaited<ReturnType<typeof fetchRequestParams>>
-  contextIds: [string, string, string]
-}
-
 /**
  * Does something useful for sure
  * @returns 1
@@ -49,6 +45,8 @@ export interface GenerateAnswerParams {
   signal?: AbortSignal
   conversationId?: string
   parentMessageId?: string
+  conversationContext?: any
+  displayTab?: string
   arkoseToken?: string
   screenWidth?: number
   screenHeight?: number
@@ -693,6 +691,7 @@ export class ChatGPTProvider implements Provider {
  * BARD Code starts here
  */
 
+
 // import ExpiryMap from 'expiry-map'
 import { ofetch } from 'ofetch'
 
@@ -791,7 +790,7 @@ export async function sendMessageFeedbackBard(data: unknown) {
  * @public
  */
 export class BARDProvider implements Provider {
-  private conversationContext?: ConversationContext
+  private conversationContext?: any
 
   constructor(private token: string) {
     this.token = token
@@ -825,7 +824,7 @@ export class BARDProvider implements Provider {
     console.debug('parseBardResponseForImagesTab:bard response payload', payload)
 
     try {
-      let text = payload[4][0][1][0] as string
+      let text:string = payload[4][0][1][0] as string
       const images = payload[4][0][4] || []
       for (const image of images) {
         const [media, source, placeholder] = image
@@ -836,7 +835,7 @@ export class BARDProvider implements Provider {
       if (images.length === 0)
         text = "Sorry I couldn't find any images corresponding to this search query"
       return {
-        text,
+        text: text as string,
         ids: [...payload[1], payload[4][0][0]] as [string, string, string],
       }
     } catch (ex) {
@@ -854,15 +853,15 @@ export class BARDProvider implements Provider {
           console.log('parseBardResponseForImagesTab:payloadagain', payloadagain)
           try {
             if (payloadagain[4]?.[0]?.[1]?.[0]) {
-              const text = payloadagain[4][0][1][0] as string
+              const text:string = payloadagain[4][0][1][0] as string
               if (payloadagain[1] && payloadagain[4]?.[0]?.[0]) {
                 return {
-                  text,
+                  text: text as string,
                   ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
                 }
               } else {
                 return {
-                  text,
+                  text: text as string,
                   ids: [],
                 }
               }
@@ -879,9 +878,9 @@ export class BARDProvider implements Provider {
     }
 
     //if it has reached here means no image was found
-    const text = 'Sorry I could not find any image corresponding to this search query'
+    const text:string = 'Sorry I could not find any image corresponding to this search query'
     return {
-      text,
+      text: text as string,
       ids: [],
     }
   }
@@ -911,10 +910,10 @@ export class BARDProvider implements Provider {
         }
       }
       console.log('parseBardResponseForVideosTab:payloadagain', payloadagain)
-      const text = payloadagain[4][0][1][0] as string
+      const text:string = payloadagain[4][0][1][0] as string
       console.log('parseBardResponseForVideosTab:video text', text)
       return {
-        text,
+        text: text as string,
         ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
       }
     } catch (ex) {
@@ -922,9 +921,9 @@ export class BARDProvider implements Provider {
     }
 
     //if it has reached here means neither any image nor any video was found
-    const text = 'Sorry I could not find any video corresponding to this search query'
+    const text:string = 'Sorry I could not find any video corresponding to this search query'
     return {
-      text,
+      text: text as string,
       ids: [],
     }
   }
@@ -944,7 +943,7 @@ export class BARDProvider implements Provider {
     console.debug('bard response payload', payload)
 
     try {
-      let text = payload[4][0][1][0] as string
+      let text:string = payload[4][0][1][0] as string
       const images = payload[4][0][4] || []
       for (const image of images) {
         const [media, source, placeholder] = image
@@ -953,7 +952,7 @@ export class BARDProvider implements Provider {
       console.log('text/images', text)
       console.log('images.length', images.length)
       return {
-        text,
+        text: text,
         ids: [...payload[1], payload[4][0][0]] as [string, string, string],
       }
     } catch (ex) {
@@ -976,15 +975,16 @@ export class BARDProvider implements Provider {
         }
       }
       console.log('payloadagain(nc)', payloadagain)
-      text = payloadagain[4][0][1][0] as string
+      let text:string = payloadagain[4][0][1][0] as string
       console.log('video text(nc)', text)
       return {
-        text,
+        text: text as string,
         ids: [...payloadagain[1], payloadagain[4][0][0]] as [string, string, string],
       }
     } catch (ex) {
       console.log('New case', ex)
     }
+    return {'text': "", 'ids': [] }
   }
 
   private async generateReqId() {
@@ -1030,7 +1030,10 @@ export class BARDProvider implements Provider {
         parseResponse: (txt) => txt,
       },
     )
-    const { text, ids } = await this.parseBardResponse(resp, params.displayTab)
+
+    let j = await this.parseBardResponse(resp, params.displayTab?params.displayTab:"");
+    let text = j?.['text']
+    let ids = j?.['ids'] as [string, string, string]
     console.debug('text:', text)
     console.debug('response ids:', ids)
     this.conversationContext.contextIds = ids
@@ -1040,7 +1043,7 @@ export class BARDProvider implements Provider {
       params.onEvent({
         type: 'answer',
         data: {
-          text,
+          text: text,
           // messageId: 'datamessage.id',
           // conversationId: 'dataconversation_id',
           // parentMessageId: 'dataparent_message_id',
