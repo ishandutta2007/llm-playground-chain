@@ -1,4 +1,30 @@
 /**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export enum ErrorCode {
+  CONVERSATION_LIMIT = 'CONVERSATION_LIMIT',
+  UNKOWN_ERROR = 'UNKOWN_ERROR',
+  CHATGPT_CLOUDFLARE = 'CHATGPT_CLOUDFLARE',
+  CHATGPT_UNAUTHORIZED = 'CHATGPT_UNAUTHORIZED',
+  GPT4_MODEL_WAITLIST = 'GPT4_MODEL_WAITLIST',
+  BING_UNAUTHORIZED = 'BING_UNAUTHORIZED',
+  BING_FORBIDDEN = 'BING_FORBIDDEN',
+  API_KEY_NOT_SET = 'API_KEY_NOT_SET',
+  BARD_EMPTY_RESPONSE = 'BARD_EMPTY_RESPONSE',
+  MISSING_POE_HOST_PERMISSION = 'MISSING_POE_HOST_PERMISSION',
+  POE_UNAUTHORIZED = 'POE_UNAUTHORIZED',
+  MISSING_HOST_PERMISSION = 'MISSING_HOST_PERMISSION',
+  XUNFEI_UNAUTHORIZED = 'XUNFEI_UNAUTHORIZED',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  POE_MESSAGE_LIMIT = 'POE_MESSAGE_LIMIT',
+  CLAUDE_WEB_UNAUTHORIZED = 'CLAUDE_WEB_UNAUTHORIZED',
+  CLAUDE_WEB_UNAVAILABLE = 'CLAUDE_WEB_UNAVAILABLE',
+}
+
+
+/**
  * ChatGPT Code starts here
  */
 
@@ -43,13 +69,13 @@ export interface GenerateAnswerParams {
   prompt: string
   onEvent: (event: Event) => void
   signal?: AbortSignal
-  conversationId?: string
-  parentMessageId?: string
-  conversationContext?: any
+  conversationId?: string //needed for Chatgpt
+  parentMessageId?: string //needed for Chatgpt
+  conversationContext?: any //needed for Bard
   displayTab?: string
-  arkoseToken?: string
-  screenWidth?: number
-  screenHeight?: number
+  arkoseToken?: string //needed for Chatgpt
+  screenWidth?: number //needed for Chatgpt
+  screenHeight?: number //needed for Chatgpt
 }
 
 /**
@@ -686,7 +712,7 @@ export class ChatGPTProvider implements Provider {
   }
 }
 
-
+/*////////////////////////////////ChatGPT Ends//////////////////////////*/
 /**
  * BARD Code starts here
  */
@@ -697,27 +723,6 @@ import { ofetch } from 'ofetch'
 
 // import { getUserConfig } from '~config'
 // import { ConversationContext, GenerateAnswerParams, Provider } from '../types'
-
-/**
- * Does something useful for sure
- * @returns 1
- * @public
- */
-export enum ErrorCode {
-  CONVERSATION_LIMIT = 'CONVERSATION_LIMIT',
-  UNKOWN_ERROR = 'UNKOWN_ERROR',
-  CHATGPT_CLOUDFLARE = 'CHATGPT_CLOUDFLARE',
-  CHATGPT_UNAUTHORIZED = 'CHATGPT_UNAUTHORIZED',
-  GPT4_MODEL_WAITLIST = 'GPT4_MODEL_WAITLIST',
-  BING_UNAUTHORIZED = 'BING_UNAUTHORIZED',
-  BING_FORBIDDEN = 'BING_FORBIDDEN',
-  API_KEY_NOT_SET = 'API_KEY_NOT_SET',
-  BARD_EMPTY_RESPONSE = 'BARD_EMPTY_RESPONSE',
-  MISSING_POE_HOST_PERMISSION = 'MISSING_POE_HOST_PERMISSION',
-  POE_UNAUTHORIZED = 'POE_UNAUTHORIZED',
-  MISSING_HOST_PERMISSION = 'MISSING_HOST_PERMISSION',
-  XUNFEI_UNAUTHORIZED = 'XUNFEI_UNAUTHORIZED',
-}
 
 /**
  * Does something useful for sure
@@ -1063,6 +1068,204 @@ export class BARDProvider implements Provider {
 
   resetConversation() {
     this.conversationContext = undefined
+  }
+}
+
+
+
+/*////////////////////////////////BARD Ends//////////////////////////*/
+/**
+ * Claude Code starts here
+ */
+
+
+
+// import { ofetch } from 'ofetch'
+// import { v4 as uuidv4 } from 'uuid'
+// import { parseSSEResponse } from '../../utils/sse'
+// import { createParser } from 'eventsource-parser'
+// import { isEmpty } from 'lodash-es'
+// import { getUserConfig } from '~config'
+// import { GenerateAnswerParams, Provider } from '../types'
+// import { ChatError, ErrorCode } from './errors'
+
+// export class ChatError extends Error {
+//   code: ErrorCode
+//   constructor(message: string, code: ErrorCode) {
+//     super(message)
+//     this.code = code
+//   }
+// }
+
+// import { streamAsyncIterable } from './stream-async-iterable'
+
+// export async function* streamAsyncIterable(stream: ReadableStream) {
+//   const reader = stream.getReader()
+//   try {
+//     while (true) {
+//       const { done, value } = await reader.read()
+//       if (done) {
+//         return
+//       }
+//       yield value
+//     }
+//   } finally {
+//     reader.releaseLock()
+//   }
+// }
+
+// export async function parseSSEResponse(resp: Response, onMessage: (message: string) => void) {
+//   if (!resp.ok) {
+//     const error = await resp.json().catch(() => ({}))
+//     if (!isEmpty(error)) {
+//       throw new Error(JSON.stringify(error))
+//     }
+//     throw new ChatError(`${resp.status} ${resp.statusText}`, ErrorCode.NETWORK_ERROR)
+//   }
+//   const parser = createParser((event) => {
+//     if (event.type === 'event') {
+//       onMessage(event.data)
+//     }
+//   })
+//   for await (const chunk of streamAsyncIterable(resp.body!)) {
+//     const str = new TextDecoder().decode(chunk)
+//     parser.feed(str)
+//   }
+// }
+
+/**
+ * Does something useful with BARD for sure
+ * @param userconfig
+ * @param token - string
+ *        userconfig - any
+ *        conversationId - string
+ *        organizationId - string
+ * @returns 1
+ * @public
+ */
+export class ClaudeProvider implements Provider {
+  private conversationId: string
+  private organizationId: string
+  constructor(private token: string, private userconfig: any) {
+    this.conversationId = ""
+    this.organizationId = ""
+  }
+
+  private async get_organization_uuid() {
+    console.log('Running get_organization_uuid')
+    let response
+    try {
+      response = await fetch('https://claude.ai/api/organizations', {
+        redirect: 'error',
+        cache: 'no-cache',
+      })
+      console.log(response.status)
+      if (!response.ok) {
+        throw new Error('Failed to fetch data')
+      }
+    } catch (u) {
+      console.log('claude organizations error:', u)
+      throw new Error(
+        'Are you sure you are logged into [claude.ai](https://claude.ai) ? Try logging in and chatting directly once. If you are still not able to access then Claude webapp might not be avaiable in your country',
+      )
+    }
+    if (response.status === 403) throw new Error('UNAUTHORIZED')
+    this.organizationId = (await response.json())[0].uuid
+    return this.organizationId
+  }
+
+  private async get_converstaionid_from_organization_uuid(org_uuid: string, prompt: string) {
+    console.log('Running get_converstaionid_from_organization_uuid')
+    this.conversationId = uuidv4() //"25fc12a7-31b8-4e90-bd79-062dc470c47d"
+    await ofetch(`https://claude.ai/api/organizations/${org_uuid}/chat_conversations`, {
+      method: 'POST',
+      body: {
+        name: prompt,
+        uuid: this.conversationId,
+      },
+    })
+    return this.conversationId
+  }
+
+  async generateAnswer(params: GenerateAnswerParams) {
+    console.log('Running generateAnswer, params:', params)
+    if (!this.organizationId) this.organizationId = await this.get_organization_uuid()
+
+    if (params.conversationId) this.conversationId = params.conversationId
+
+    if (!this.conversationId)
+      this.conversationId = await this.get_converstaionid_from_organization_uuid(
+        this.organizationId,
+        params.prompt,
+      )
+
+    const cleanup = () => {
+      // const x = 0
+    }
+
+    // const userConfig = await getUserConfig()
+    console.log('Running generateAnswer, Calling append_message')
+    const resp = await fetch(
+      'https://claude.ai/api/organizations/' +
+        this.organizationId +
+        '/chat_conversations/' +
+        this.conversationId +
+        '/completion',
+      {
+        method: 'POST',
+        signal: params.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          attachments: [],
+          files: [],
+          // model: userConfig.claudeModel,
+          timezone: 'Asia/Calcutta',
+          prompt: params.prompt,
+        }),
+      },
+    )
+
+    let text = ''
+    await parseSSEResponse(resp, (message) => {
+      console.debug('claude sse message', message)
+      let data
+      try {
+        data = JSON.parse(message)
+      } catch (err) {
+        console.error(err)
+        return
+      }
+      console.debug('claude sse data.type', data.type)
+      if (data.type === 'completion') {
+        const content: string = data.completion
+        if (!content && data.stop) {
+          console.debug('claude content DONE')
+          params.onEvent({ type: 'done' })
+          return
+        }
+        console.debug('claude content', content)
+        text += content
+        console.debug('claude text', text)
+        if (text) {
+          params.onEvent({
+            type: 'answer',
+            data: {
+              text: text.trimStart(),
+              conversationId: this.conversationId,
+            },
+          })
+        }
+      }
+    }).catch((err: Error) => {
+      if (err.message.includes('token_expired')) {
+        throw new Error(err.message)
+      }
+      throw err
+    })
+
+    return { cleanup }
   }
 }
 
