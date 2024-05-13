@@ -21,6 +21,9 @@ export enum ErrorCode {
   POE_MESSAGE_LIMIT = 'POE_MESSAGE_LIMIT',
   CLAUDE_WEB_UNAUTHORIZED = 'CLAUDE_WEB_UNAUTHORIZED',
   CLAUDE_WEB_UNAVAILABLE = 'CLAUDE_WEB_UNAVAILABLE',
+  PI_WEB_UNAUTHORIZED = 'PI_WEB_UNAUTHORIZED',
+  PI_WEB_UNAVAILABLE = 'PI_WEB_UNAVAILABLE',
+  PI_EMPTY_RESPONSE = 'PI_EMPTY_RESPONSE'
 }
 
 
@@ -117,7 +120,7 @@ import { v4 as uuidv4 } from 'uuid'
 import Browser from 'webextension-polyfill'
 import WebSocketAsPromised from 'websocket-as-promised'
 // import { ChatgptMode, getUserConfigForLLM } from './config'
-import { ADAY, APPSHORTNAME, HALFHOUR } from './utils/consts'
+import { ADAY, APPSHORTNAME, HALFHOUR, GITHUB_HOME } from './utils/consts'
 import { parseSSEResponse, parseSSEResponse3 } from './utils/sse'
 import { fetchSSE } from './utils/fetch-sse'
 // import { GenerateAnswerParams, ResponseContent, Provider } from './utils/types'
@@ -792,7 +795,6 @@ export async function sendMessageFeedbackBard(data: unknown) {
 
 /**
  * Does something useful with BARD for sure
- * @param userconfig
  * @param token - string
  *        userconfig - any
  * @returns 1
@@ -1135,7 +1137,6 @@ export class BARDProvider implements Provider {
 
 /**
  * Does something useful with Claude for sure
- * @param userconfig
  * @param token - string
  *        userconfig - any
  *        conversationId - string
@@ -1264,6 +1265,162 @@ export class ClaudeProvider implements Provider {
       }
       throw err
     })
+
+    return { cleanup }
+  }
+}
+
+
+
+/*////////////////////////////////Claude Ends//////////////////////////*/
+/**
+ * Pi Code starts here
+ */
+
+
+// import { parseSSEResponse } from '../../utils/sse'
+// import { GenerateAnswerParams, Provider } from '../types'
+
+// import { createParser } from 'eventsource-parser'
+// import { isEmpty } from 'lodash-es'
+// import { ChatError, ErrorCode } from './errors'
+
+// import { streamAsyncIterable } from './stream-async-iterable'
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export async function* streamAsyncIterable(stream: ReadableStream) {
+  const reader = stream.getReader()
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        return
+      }
+      yield value
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+// export async function parseSSEResponse(resp: Response, onMessage: (message: string) => void) {
+//   if (!resp.ok) {
+//     const error = await resp.json().catch(() => ({}))
+//     if (!isEmpty(error)) {
+//       throw new Error(JSON.stringify(error))
+//     }
+//     throw new ChatError(`${resp.status} ${resp.statusText}`, ErrorCode.NETWORK_ERROR)
+//   }
+//   const parser = createParser((event) => {
+//     if (event.type === 'event') {
+//       onMessage(event.data)
+//     }
+//   })
+//   for await (const chunk of streamAsyncIterable(resp.body!)) {
+//     const str = new TextDecoder().decode(chunk)
+//     parser.feed(str)
+//   }
+// }
+
+/**
+ * Does something useful for sure
+ * @returns 1
+ * @public
+ */
+export function website_login_request_message(WEBSITE: any) {
+  return (
+    " Also make sure that you are logged in this bot's website by visiting it's website " +
+    WEBSITE +
+    ' and checking if you are able to access it from there. If it works fine via web access but not via Seach-n-Chat sidebar then you may create an issue at ' +
+    GITHUB_HOME +
+    '/issues'
+  )
+}
+
+/**
+ * Does something useful with Pi for sure
+ * @param token - string
+ *        userconfig - any
+ *        conversationId - string
+ *        organizationId - string
+ * @returns 1
+ * @public
+ */
+export class PiProvider implements Provider {
+  private conversationContext: any
+  constructor(private token: string, private userconfig: any) {
+    this.conversationContext = {
+      initialized: !0,
+    }
+  }
+
+  async generateAnswer(params: GenerateAnswerParams) {
+    console.log('PiProvider:Running generateAnswer, params:', params)
+    // if (!this.conversationContext) {
+    //   this.conversationContext = {
+    //     initialized: !0,
+    //   }
+    // }
+
+    const resp = await fetch('https://pi.ai/api/chat', {
+      method: 'POST',
+      signal: params.signal,
+      body: JSON.stringify({
+        text: params.prompt,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    let text = ''
+    await parseSSEResponse(resp, (message) => {
+      console.debug('PiProvider:parseSSEResponse:message', message)
+      const data = JSON.parse(message)
+      try {
+        if (data.text) {
+          console.debug('PiProvider:parseSSEResponse:data.text', data.text)
+          text = text + data.text
+          console.debug('PiProvider:parseSSEResponse:data.text', text)
+          params.onEvent({
+            type: 'answer',
+            data: {
+              text: text,
+            },
+          })
+        } else {
+          console.debug('PiProvider:parseSSEResponse:No text in data:', data)
+        }
+      } catch (ex: any) {
+        console.debug('PiProvider:parseSSEResponse:Error something in message:', message, ex)
+      }
+    }).catch((err: Error) => {
+      console.log('PiProvider: error caught succesfully:err', err)
+      throw new ChatError(
+        'Failed to access Pi.' + website_login_request_message('https://pi.ai'),
+        ErrorCode.PI_EMPTY_RESPONSE,
+      )
+    })
+
+    console.debug('PiProvider:parseSSEResponse:done')
+    params.onEvent({
+      type: 'answer',
+      data: {
+        text: text,
+      },
+    })
+    params.onEvent({
+      type: 'done',
+    })
+    // text = ''
+
+    const cleanup = () => {
+      // const x = 0
+    }
 
     return { cleanup }
   }
