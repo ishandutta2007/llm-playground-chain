@@ -1134,7 +1134,7 @@ export class BARDProvider implements Provider {
 // }
 
 /**
- * Does something useful with BARD for sure
+ * Does something useful with Claude for sure
  * @param userconfig
  * @param token - string
  *        userconfig - any
