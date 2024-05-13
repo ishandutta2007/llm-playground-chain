@@ -128,15 +128,15 @@ function removeCitations(text: string) {
 const getConversationTitle = (bigtext: string) => {
   let ret = bigtext.split('\n', 1)[0]
   try {
-    ret = ret.split('for summarizing :')[1]
+    ret = ret?.split('for summarizing :')?.[1]
   } catch (e) {
-    console.log(e)
+    console.log("getConversationTitle", e)
   }
-  ret = ret.split('.', 1)[0]
+  ret = ret?.split('.', 1)[0]
   try {
-    ret = APPSHORTNAME + ':' + ret.split(':')[1].trim()
+    ret = APPSHORTNAME + ':' + ret.split(':')?.[1]?.trim()
   } catch (e) {
-    console.log(e)
+    console.log("getConversationTitle", e)
     ret = APPSHORTNAME + ':' + ret.trim().slice(0, 8) + '..'
   }
   return ret
